@@ -21,6 +21,7 @@ import {
   ClipboardList,
   Calendar,
   Award,
+  FileBarChart,
   LogOut,
   Menu,
   X,
@@ -41,12 +42,13 @@ interface NavItem {
 const adminNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: Users, label: 'Students', href: '/students' },
-  { icon: BookOpen, label: 'Courses', href: '/courses' },
   { icon: Building2, label: 'Departments', href: '/departments' },
+  { icon: BookOpen, label: 'Courses', href: '/courses' },
   { icon: UserCog, label: 'Instructors', href: '/instructors' },
   { icon: ClipboardList, label: 'Enrollments', href: '/enrollments' },
   { icon: Calendar, label: 'Attendance', href: '/attendance' },
   { icon: Award, label: 'Results', href: '/results' },
+  { icon: FileBarChart, label: 'Reports', href: '/reports' },
 ];
 
 const studentNavItems: NavItem[] = [
