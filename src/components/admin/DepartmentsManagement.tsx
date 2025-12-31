@@ -119,10 +119,10 @@ export function DepartmentsManagement() {
         
         // Sync to external Supabase
         if (data) {
-          syncUpdate('departments', data);
+          await syncUpdate('departments', data);
         }
         
-        toast({ title: 'Success', description: 'Department updated successfully.' });
+        toast({ title: 'Success', description: 'Department updated & synced.' });
       } else {
         const { data, error } = await supabase
           .from('departments')
@@ -134,10 +134,10 @@ export function DepartmentsManagement() {
         
         // Sync to external Supabase
         if (data) {
-          syncInsert('departments', data);
+          await syncInsert('departments', data);
         }
         
-        toast({ title: 'Success', description: 'Department created successfully.' });
+        toast({ title: 'Success', description: 'Department created & synced.' });
       }
 
       setDialogOpen(false);
@@ -166,9 +166,9 @@ export function DepartmentsManagement() {
       if (error) throw error;
       
       // Sync delete to external Supabase
-      syncDelete('departments', deletingDepartment.id);
+      await syncDelete('departments', deletingDepartment.id);
       
-      toast({ title: 'Success', description: 'Department deleted successfully.' });
+      toast({ title: 'Success', description: 'Department deleted & synced.' });
       setDeleteDialogOpen(false);
       fetchData();
     } catch (error: any) {

@@ -134,10 +134,10 @@ export function AttendanceManagement() {
         
         // Sync to external Supabase
         if (data) {
-          syncUpdate('attendance', data);
+          await syncUpdate('attendance', data);
         }
         
-        toast({ title: 'Success', description: 'Attendance updated successfully.' });
+        toast({ title: 'Success', description: 'Attendance updated & synced.' });
       } else {
         const { data, error } = await supabase
           .from('attendance')
@@ -149,10 +149,10 @@ export function AttendanceManagement() {
         
         // Sync to external Supabase
         if (data) {
-          syncInsert('attendance', data);
+          await syncInsert('attendance', data);
         }
         
-        toast({ title: 'Success', description: 'Attendance recorded successfully.' });
+        toast({ title: 'Success', description: 'Attendance recorded & synced.' });
       }
 
       setDialogOpen(false);
@@ -177,9 +177,9 @@ export function AttendanceManagement() {
       if (error) throw error;
       
       // Sync delete to external Supabase
-      syncDelete('attendance', deletingAttendance.id);
+      await syncDelete('attendance', deletingAttendance.id);
 
-      toast({ title: 'Success', description: 'Attendance deleted successfully.' });
+      toast({ title: 'Success', description: 'Attendance deleted & synced.' });
       setDeleteDialogOpen(false);
       fetchData();
     } catch (error: any) {

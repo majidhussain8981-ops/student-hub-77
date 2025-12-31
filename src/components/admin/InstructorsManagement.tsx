@@ -133,10 +133,10 @@ export function InstructorsManagement() {
         
         // Sync to external Supabase
         if (data) {
-          syncUpdate('instructors', data);
+          await syncUpdate('instructors', data);
         }
         
-        toast({ title: 'Success', description: 'Instructor updated successfully.' });
+        toast({ title: 'Success', description: 'Instructor updated & synced.' });
       } else {
         const { data, error } = await supabase
           .from('instructors')
@@ -148,10 +148,10 @@ export function InstructorsManagement() {
         
         // Sync to external Supabase
         if (data) {
-          syncInsert('instructors', data);
+          await syncInsert('instructors', data);
         }
         
-        toast({ title: 'Success', description: 'Instructor created successfully.' });
+        toast({ title: 'Success', description: 'Instructor created & synced.' });
       }
 
       setDialogOpen(false);
@@ -180,9 +180,9 @@ export function InstructorsManagement() {
       if (error) throw error;
       
       // Sync delete to external Supabase
-      syncDelete('instructors', deletingInstructor.id);
+      await syncDelete('instructors', deletingInstructor.id);
       
-      toast({ title: 'Success', description: 'Instructor deleted successfully.' });
+      toast({ title: 'Success', description: 'Instructor deleted & synced.' });
       setDeleteDialogOpen(false);
       fetchData();
     } catch (error: any) {

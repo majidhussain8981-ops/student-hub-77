@@ -146,10 +146,10 @@ export function CoursesManagement() {
         
         // Sync to external Supabase
         if (data) {
-          syncUpdate('courses', data);
+          await syncUpdate('courses', data);
         }
         
-        toast({ title: 'Success', description: 'Course updated successfully.' });
+        toast({ title: 'Success', description: 'Course updated & synced.' });
       } else {
         const { data, error } = await supabase
           .from('courses')
@@ -161,10 +161,10 @@ export function CoursesManagement() {
         
         // Sync to external Supabase
         if (data) {
-          syncInsert('courses', data);
+          await syncInsert('courses', data);
         }
         
-        toast({ title: 'Success', description: 'Course created successfully.' });
+        toast({ title: 'Success', description: 'Course created & synced.' });
       }
 
       setDialogOpen(false);
@@ -193,9 +193,9 @@ export function CoursesManagement() {
       if (error) throw error;
       
       // Sync delete to external Supabase
-      syncDelete('courses', deletingCourse.id);
+      await syncDelete('courses', deletingCourse.id);
       
-      toast({ title: 'Success', description: 'Course deleted successfully.' });
+      toast({ title: 'Success', description: 'Course deleted & synced.' });
       setDeleteDialogOpen(false);
       fetchData();
     } catch (error: any) {
