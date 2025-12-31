@@ -162,11 +162,24 @@ export function StudentCourses() {
   );
 }
 
+interface CourseAttendanceSummary {
+  courseId: string;
+  code: string;
+  name: string;
+  totalClasses: number;
+  attended: number;
+  absent: number;
+  late: number;
+  excused: number;
+  attendancePercentage: number;
+}
+
 export function StudentAttendance() {
   const { user } = useAuth();
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ present: 0, absent: 0, late: 0, excused: 0, total: 0 });
+  const [courseSummaries, setCourseSummaries] = useState<CourseAttendanceSummary[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<CourseAttendanceSummary | null>(null);
 
   useEffect(() => {
     const fetchAttendance = async () => {
@@ -181,24 +194,59 @@ export function StudentAttendance() {
       if (student) {
         const { data } = await supabase
           .from('attendance')
-          .select('*, course:courses(name, code)')
+          .select('*, course:courses(id, name, code)')
           .eq('student_id', student.id)
           .order('date', { ascending: false });
 
-        const attendanceData = data as unknown as AttendanceRecord[] || [];
+        const attendanceData = data as unknown as (AttendanceRecord & { course: { id: string; name: string; code: string } })[] || [];
         setAttendance(attendanceData);
 
-        // Calculate stats
-        const present = attendanceData.filter(a => a.status === 'present').length;
-        const absent = attendanceData.filter(a => a.status === 'absent').length;
-        const late = attendanceData.filter(a => a.status === 'late').length;
-        const excused = attendanceData.filter(a => a.status === 'excused').length;
-        setStats({ present, absent, late, excused, total: attendanceData.length });
+        // Group by course and calculate summaries
+        const courseMap = new Map<string, CourseAttendanceSummary>();
+        
+        attendanceData.forEach(a => {
+          const courseId = (a.course as { id: string; name: string; code: string }).id;
+          const existing = courseMap.get(courseId);
+          
+          if (existing) {
+            existing.totalClasses++;
+            if (a.status === 'present') existing.attended++;
+            else if (a.status === 'absent') existing.absent++;
+            else if (a.status === 'late') existing.late++;
+            else if (a.status === 'excused') existing.excused++;
+          } else {
+            courseMap.set(courseId, {
+              courseId,
+              code: a.course.code,
+              name: a.course.name,
+              totalClasses: 1,
+              attended: a.status === 'present' ? 1 : 0,
+              absent: a.status === 'absent' ? 1 : 0,
+              late: a.status === 'late' ? 1 : 0,
+              excused: a.status === 'excused' ? 1 : 0,
+              attendancePercentage: 0,
+            });
+          }
+        });
+
+        // Calculate percentages
+        courseMap.forEach(summary => {
+          summary.attendancePercentage = summary.totalClasses > 0 
+            ? Math.round((summary.attended / summary.totalClasses) * 100) 
+            : 0;
+        });
+
+        setCourseSummaries(Array.from(courseMap.values()));
       }
       setLoading(false);
     };
     fetchAttendance();
   }, [user]);
+
+  const getCourseAttendance = () => {
+    if (!selectedCourse) return [];
+    return attendance.filter(a => a.course.code === selectedCourse.code);
+  };
 
   if (loading) {
     return (
@@ -210,19 +258,25 @@ export function StudentAttendance() {
     );
   }
 
-  const attendancePercentage = stats.total > 0 
-    ? Math.round((stats.present / stats.total) * 100) 
-    : 0;
+  // Show course details view
+  if (selectedCourse) {
+    const courseAttendance = getCourseAttendance();
+    
+    return (
+      <DashboardLayout>
+        <PageHeader 
+          title={`${selectedCourse.code} - ${selectedCourse.name}`}
+          description="Attendance details for this course"
+        />
+        
+        <button 
+          onClick={() => setSelectedCourse(null)}
+          className="mb-6 text-primary hover:underline flex items-center gap-2"
+        >
+          ← Back to all courses
+        </button>
 
-  return (
-    <DashboardLayout>
-      <PageHeader 
-        title="My Attendance" 
-        description="View your attendance records across all courses" 
-      />
-
-      {/* Stats Summary */}
-      {stats.total > 0 && (
+        {/* Course Stats */}
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -232,36 +286,73 @@ export function StudentAttendance() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-              <span>Overall Attendance Rate</span>
-              <span className={`font-bold text-lg ${attendancePercentage >= 75 ? 'text-success' : 'text-warning'}`}>
-                {attendancePercentage}%
+              <span>Attendance Rate</span>
+              <span className={`font-bold text-lg ${selectedCourse.attendancePercentage >= 75 ? 'text-success' : 'text-warning'}`}>
+                {selectedCourse.attendancePercentage}%
               </span>
             </div>
-            <Progress value={attendancePercentage} className="h-3" />
-            <div className="grid grid-cols-4 gap-4 pt-2">
+            <Progress value={selectedCourse.attendancePercentage} className="h-3" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+              <div className="text-center p-3 rounded-lg bg-muted">
+                <p className="text-2xl font-bold">{selectedCourse.totalClasses}</p>
+                <p className="text-xs text-muted-foreground">Total Classes</p>
+              </div>
               <div className="text-center p-3 rounded-lg bg-success/10">
-                <p className="text-2xl font-bold text-success">{stats.present}</p>
+                <p className="text-2xl font-bold text-success">{selectedCourse.attended}</p>
                 <p className="text-xs text-muted-foreground">Present</p>
               </div>
               <div className="text-center p-3 rounded-lg bg-destructive/10">
-                <p className="text-2xl font-bold text-destructive">{stats.absent}</p>
+                <p className="text-2xl font-bold text-destructive">{selectedCourse.absent}</p>
                 <p className="text-xs text-muted-foreground">Absent</p>
               </div>
               <div className="text-center p-3 rounded-lg bg-warning/10">
-                <p className="text-2xl font-bold text-warning">{stats.late}</p>
-                <p className="text-xs text-muted-foreground">Late</p>
-              </div>
-              <div className="text-center p-3 rounded-lg bg-info/10">
-                <p className="text-2xl font-bold text-info">{stats.excused}</p>
-                <p className="text-xs text-muted-foreground">Excused</p>
+                <p className="text-2xl font-bold text-warning">{selectedCourse.late + selectedCourse.excused}</p>
+                <p className="text-xs text-muted-foreground">Late/Excused</p>
               </div>
             </div>
           </CardContent>
         </Card>
-      )}
 
-      {/* Attendance Records */}
-      {attendance.length === 0 ? (
+        {/* Attendance Records */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Attendance Records</CardTitle>
+            <CardDescription>All class attendance for this course</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {courseAttendance.map((a) => (
+                <div key={a.id} className="flex items-center justify-between p-3 rounded-lg border">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                      <Calendar className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{format(new Date(a.date), 'EEEE, MMMM dd, yyyy')}</p>
+                      {a.remarks && (
+                        <p className="text-sm text-muted-foreground italic">"{a.remarks}"</p>
+                      )}
+                    </div>
+                  </div>
+                  <StatusBadge status={a.status} />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    );
+  }
+
+  // Show courses list view
+  return (
+    <DashboardLayout>
+      <PageHeader 
+        title="My Attendance" 
+        description="Select a course to view your attendance details" 
+      />
+
+      {courseSummaries.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <Calendar className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
@@ -269,29 +360,44 @@ export function StudentAttendance() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {attendance.map((a) => (
-            <Card key={a.id}>
-              <CardContent className="py-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                      <Calendar className="w-5 h-5 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{a.course.code} - {a.course.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {format(new Date(a.date), 'EEEE, MMMM dd, yyyy')}
-                      </p>
-                      {a.remarks && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          <span className="italic">"{a.remarks}"</span>
-                        </p>
-                      )}
-                    </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {courseSummaries.map((course) => (
+            <Card 
+              key={course.courseId} 
+              className="cursor-pointer hover:shadow-lg transition-all hover:border-primary"
+              onClick={() => setSelectedCourse(course)}
+            >
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <BookOpen className="w-6 h-6 text-primary" />
                   </div>
-                  <StatusBadge status={a.status} />
+                  <span className={`text-sm font-bold px-2 py-1 rounded ${
+                    course.attendancePercentage >= 75 ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'
+                  }`}>
+                    {course.attendancePercentage}%
+                  </span>
                 </div>
+                <CardTitle className="text-lg mt-3">{course.name}</CardTitle>
+                <CardDescription className="font-medium">{course.code}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Total Classes</span>
+                  <span className="font-medium">{course.totalClasses}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Classes Attended</span>
+                  <span className="font-medium text-success">{course.attended}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Classes Missed</span>
+                  <span className="font-medium text-destructive">{course.absent}</span>
+                </div>
+                <Progress value={course.attendancePercentage} className="h-2 mt-2" />
+                <p className="text-xs text-muted-foreground text-center pt-1">
+                  Click to view detailed attendance
+                </p>
               </CardContent>
             </Card>
           ))}
