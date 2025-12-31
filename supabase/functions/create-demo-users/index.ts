@@ -22,14 +22,14 @@ type DemoStudent = DemoUser & {
 const DEMO_ADMIN: DemoUser = {
   email: 'admin@sims.com',
   password: 'admin123',
-  fullName: 'Ahmed Hassan Khan',
+  fullName: 'Dr. Abdul Rasheed',
   role: 'admin',
 };
 
 const DEMO_STUDENT: DemoStudent = {
   email: 'student@sims.com',
   password: 'student123',
-  fullName: 'Muhammad Ali Raza',
+  fullName: 'Usman Farooq',
   role: 'student',
   studentCode: 'STU-2024-001',
   semester: 3,
@@ -176,7 +176,7 @@ Deno.serve(async (req) => {
           code: 'CS',
           name: 'Computer Science',
           description: 'Department of Computer Science and Engineering',
-          head_name: 'Dr. Fatima Zahra',
+          head_name: 'Dr. Khalid Mahmood',
         })
         .select('id')
         .single();

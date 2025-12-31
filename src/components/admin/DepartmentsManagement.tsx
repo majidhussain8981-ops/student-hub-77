@@ -226,7 +226,7 @@ export function DepartmentsManagement() {
                   id="head_name"
                   value={formData.head_name}
                   onChange={(e) => setFormData({ ...formData, head_name: e.target.value })}
-                  placeholder="Dr. Imran Malik"
+                  placeholder="Dr. Yusuf Ahmed"
                 />
               </div>
             </div>
