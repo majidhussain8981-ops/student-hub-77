@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,7 +25,6 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { signIn, signUp } = useAuth();
-  const navigate = useNavigate();
   const { toast } = useToast();
 
   const validateForm = () => {
@@ -75,7 +73,7 @@ export function LoginForm() {
             title: 'Welcome back!',
             description: `Successfully logged in as ${role || 'user'}.`,
           });
-          navigate('/dashboard', { replace: true });
+          // No manual navigation: App routes will redirect once auth state updates.
         }
       } else {
         const { error } = await signUp(email, password, fullName);
