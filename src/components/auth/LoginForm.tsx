@@ -23,8 +23,9 @@ export function LoginForm() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, prepareDemoUsers } = useAuth();
   const { toast } = useToast();
 
   const validateForm = () => {
@@ -52,9 +53,9 @@ export function LoginForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setLoading(true);
 
     try {
@@ -64,9 +65,10 @@ export function LoginForm() {
           toast({
             variant: 'destructive',
             title: 'Login Failed',
-            description: error.message === 'Invalid login credentials' 
-              ? 'Invalid email or password. Please try again.' 
-              : error.message,
+            description:
+              error.message === 'Invalid login credentials'
+                ? 'Invalid email or password. Please try again.'
+                : error.message,
           });
         } else {
           toast({
@@ -80,8 +82,8 @@ export function LoginForm() {
           toast({
             variant: 'destructive',
             title: 'Sign Up Failed',
-            description: error.message.includes('already registered') 
-              ? 'This email is already registered. Please login instead.' 
+            description: error.message.includes('already registered')
+              ? 'This email is already registered. Please login instead.'
               : error.message,
           });
         } else {
@@ -97,15 +99,31 @@ export function LoginForm() {
     }
   };
 
-  const fillDemoCredentials = (type: 'admin' | 'student') => {
-    if (type === 'admin') {
-      setEmail('admin@sims.com');
-      setPassword('admin123');
-    } else {
-      setEmail('student@sims.com');
-      setPassword('student123');
+  const fillDemoCredentials = async (demoEmail: string, demoPassword: string) => {
+    setDemoLoading(true);
+    try {
+      // Ensure demo users are always ready (idempotent)
+      const { error } = await prepareDemoUsers();
+      if (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Demo Setup Failed',
+          description: error.message,
+        });
+        return;
+      }
+
+      setEmail(demoEmail);
+      setPassword(demoPassword);
+      setErrors({});
+
+      toast({
+        title: 'Demo credentials filled',
+        description: 'Click “Sign In” to continue.',
+      });
+    } finally {
+      setDemoLoading(false);
     }
-    setErrors({});
   };
 
   return (
@@ -140,24 +158,54 @@ export function LoginForm() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => fillDemoCredentials('admin')}
+                    disabled={demoLoading}
+                    onClick={() => fillDemoCredentials('admin@sims.com', 'admin123')}
                     className="h-auto py-3 flex flex-col items-center gap-1 hover:bg-primary/10 hover:border-primary"
                   >
                     <Shield className="w-5 h-5 text-primary" />
                     <span className="text-sm font-medium">Admin Demo</span>
                     <span className="text-xs text-muted-foreground">Full access</span>
                   </Button>
+
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => fillDemoCredentials('student')}
+                    disabled={demoLoading}
+                    onClick={() => fillDemoCredentials('student@sims.com', 'student123')}
                     className="h-auto py-3 flex flex-col items-center gap-1 hover:bg-info/10 hover:border-info"
                   >
                     <BookOpen className="w-5 h-5 text-info" />
-                    <span className="text-sm font-medium">Student Demo</span>
-                    <span className="text-xs text-muted-foreground">Student view</span>
+                    <span className="text-sm font-medium">Student #1</span>
+                    <span className="text-xs text-muted-foreground">Demo Student</span>
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={demoLoading}
+                    onClick={() => fillDemoCredentials('student2@sims.com', 'student123')}
+                    className="h-auto py-3 flex flex-col items-center gap-1 hover:bg-info/10 hover:border-info"
+                  >
+                    <BookOpen className="w-5 h-5 text-info" />
+                    <span className="text-sm font-medium">Student #2</span>
+                    <span className="text-xs text-muted-foreground">Demo Student</span>
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={demoLoading}
+                    onClick={() => fillDemoCredentials('student3@sims.com', 'student123')}
+                    className="h-auto py-3 flex flex-col items-center gap-1 hover:bg-info/10 hover:border-info"
+                  >
+                    <BookOpen className="w-5 h-5 text-info" />
+                    <span className="text-sm font-medium">Student #3</span>
+                    <span className="text-xs text-muted-foreground">Demo Student</span>
                   </Button>
                 </div>
+                <p className="text-xs text-muted-foreground mt-3 text-center">
+                  Tip: pick a demo account, then press <span className="font-medium">Sign In</span>.
+                </p>
               </div>
             )}
 
