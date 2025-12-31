@@ -79,6 +79,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) {
       return { error: error as Error, role: null };
     }
+
+    // Set auth state immediately to prevent redirect flicker before onAuthStateChange fires.
+    setSession(data.session ?? null);
+    setUser(data.user ?? null);
+
     // Fetch role immediately after successful login
     const userRole = data.user ? await fetchUserRole(data.user.id) : null;
     setRole(userRole);

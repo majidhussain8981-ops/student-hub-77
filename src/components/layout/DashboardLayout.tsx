@@ -69,7 +69,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/login');
+    navigate('/login', { replace: true });
   };
 
   const NavLink = ({ item }: { item: NavItem }) => {
