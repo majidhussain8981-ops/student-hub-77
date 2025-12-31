@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +28,7 @@ export function LoginForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { signIn, signUp, prepareDemoUsers } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const validateForm = () => {
     try {
@@ -75,6 +77,7 @@ export function LoginForm() {
             title: 'Welcome back!',
             description: `Successfully logged in as ${role || 'user'}.`,
           });
+          navigate('/dashboard', { replace: true });
         }
       } else {
         const { error } = await signUp(email, password, fullName);
@@ -126,6 +129,7 @@ export function LoginForm() {
           title: 'Welcome!',
           description: `Signed in as ${role || 'demo user'}.`,
         });
+        navigate('/dashboard', { replace: true });
       }
     } finally {
       setDemoLoading(null);
