@@ -228,7 +228,7 @@ export function InstructorsManagement() {
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Dr. Jane Smith"
+                placeholder="Dr. Amina Bibi"
               />
             </div>
 
@@ -240,7 +240,7 @@ export function InstructorsManagement() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="jane@university.edu"
+                  placeholder="amina@university.edu.pk"
                 />
               </div>
               <div className="space-y-2">
@@ -249,7 +249,7 @@ export function InstructorsManagement() {
                   id="phone"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="+1234567890"
+                  placeholder="+92-321-1234567"
                 />
               </div>
             </div>
