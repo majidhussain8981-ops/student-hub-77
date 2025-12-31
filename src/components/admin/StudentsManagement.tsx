@@ -271,7 +271,7 @@ export function StudentsManagement() {
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Muhammad Ahmad"
+                placeholder="Abdullah Hassan"
               />
             </div>
 
@@ -282,7 +282,7 @@ export function StudentsManagement() {
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="ahmad@example.com"
+                placeholder="abdullah@example.com"
               />
             </div>
 
