@@ -271,7 +271,7 @@ export function StudentsManagement() {
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="John Doe"
+                placeholder="Muhammad Ahmad"
               />
             </div>
 
@@ -282,7 +282,7 @@ export function StudentsManagement() {
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="john@example.com"
+                placeholder="ahmad@example.com"
               />
             </div>
 
@@ -293,7 +293,7 @@ export function StudentsManagement() {
                   id="phone"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="+1234567890"
+                  placeholder="+92-300-1234567"
                 />
               </div>
               <div className="space-y-2">
