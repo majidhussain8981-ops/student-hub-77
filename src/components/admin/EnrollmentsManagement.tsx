@@ -119,10 +119,10 @@ export function EnrollmentsManagement() {
         
         // Sync to external Supabase
         if (data) {
-          syncUpdate('enrollments', data);
+          await syncUpdate('enrollments', data);
         }
         
-        toast({ title: 'Success', description: 'Enrollment updated successfully.' });
+        toast({ title: 'Success', description: 'Enrollment updated & synced.' });
       } else {
         // Check for duplicate enrollment
         const { data: existing } = await supabase
@@ -148,10 +148,10 @@ export function EnrollmentsManagement() {
         
         // Sync to external Supabase
         if (data) {
-          syncInsert('enrollments', data);
+          await syncInsert('enrollments', data);
         }
         
-        toast({ title: 'Success', description: 'Student enrolled successfully.' });
+        toast({ title: 'Success', description: 'Student enrolled & synced.' });
       }
 
       setDialogOpen(false);
@@ -176,9 +176,9 @@ export function EnrollmentsManagement() {
       if (error) throw error;
       
       // Sync delete to external Supabase
-      syncDelete('enrollments', deletingEnrollment.id);
+      await syncDelete('enrollments', deletingEnrollment.id);
 
-      toast({ title: 'Success', description: 'Enrollment deleted successfully.' });
+      toast({ title: 'Success', description: 'Enrollment deleted & synced.' });
       setDeleteDialogOpen(false);
       fetchData();
     } catch (error: any) {

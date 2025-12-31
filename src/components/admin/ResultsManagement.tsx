@@ -161,10 +161,10 @@ export function ResultsManagement() {
         
         // Sync to external Supabase
         if (data) {
-          syncUpdate('results', data);
+          await syncUpdate('results', data);
         }
         
-        toast({ title: 'Success', description: 'Result updated successfully.' });
+        toast({ title: 'Success', description: 'Result updated & synced.' });
       } else {
         const { data, error } = await supabase
           .from('results')
@@ -176,10 +176,10 @@ export function ResultsManagement() {
         
         // Sync to external Supabase
         if (data) {
-          syncInsert('results', data);
+          await syncInsert('results', data);
         }
         
-        toast({ title: 'Success', description: 'Result added successfully.' });
+        toast({ title: 'Success', description: 'Result added & synced.' });
       }
 
       setDialogOpen(false);
@@ -204,9 +204,9 @@ export function ResultsManagement() {
       if (error) throw error;
       
       // Sync delete to external Supabase
-      syncDelete('results', deletingResult.id);
+      await syncDelete('results', deletingResult.id);
 
-      toast({ title: 'Success', description: 'Result deleted successfully.' });
+      toast({ title: 'Success', description: 'Result deleted & synced.' });
       setDeleteDialogOpen(false);
       fetchData();
     } catch (error: any) {
