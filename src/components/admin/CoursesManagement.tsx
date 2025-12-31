@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { syncInsert, syncUpdate, syncDelete } from '@/lib/syncToExternal';
 
 interface Course {
   id: string;
@@ -134,16 +135,35 @@ export function CoursesManagement() {
       };
 
       if (editingCourse) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('courses')
           .update(payload)
-          .eq('id', editingCourse.id);
+          .eq('id', editingCourse.id)
+          .select()
+          .single();
         
         if (error) throw error;
+        
+        // Sync to external Supabase
+        if (data) {
+          syncUpdate('courses', data);
+        }
+        
         toast({ title: 'Success', description: 'Course updated successfully.' });
       } else {
-        const { error } = await supabase.from('courses').insert([payload]);
+        const { data, error } = await supabase
+          .from('courses')
+          .insert([payload])
+          .select()
+          .single();
+        
         if (error) throw error;
+        
+        // Sync to external Supabase
+        if (data) {
+          syncInsert('courses', data);
+        }
+        
         toast({ title: 'Success', description: 'Course created successfully.' });
       }
 
@@ -171,6 +191,9 @@ export function CoursesManagement() {
         .eq('id', deletingCourse.id);
 
       if (error) throw error;
+      
+      // Sync delete to external Supabase
+      syncDelete('courses', deletingCourse.id);
       
       toast({ title: 'Success', description: 'Course deleted successfully.' });
       setDeleteDialogOpen(false);

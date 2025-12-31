@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { syncInsert, syncUpdate, syncDelete } from '@/lib/syncToExternal';
 
 interface Attendance {
   id: string;
@@ -122,16 +123,35 @@ export function AttendanceManagement() {
       };
 
       if (editingAttendance) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('attendance')
           .update(payload)
-          .eq('id', editingAttendance.id);
+          .eq('id', editingAttendance.id)
+          .select()
+          .single();
         
         if (error) throw error;
+        
+        // Sync to external Supabase
+        if (data) {
+          syncUpdate('attendance', data);
+        }
+        
         toast({ title: 'Success', description: 'Attendance updated successfully.' });
       } else {
-        const { error } = await supabase.from('attendance').insert([payload]);
+        const { data, error } = await supabase
+          .from('attendance')
+          .insert([payload])
+          .select()
+          .single();
+        
         if (error) throw error;
+        
+        // Sync to external Supabase
+        if (data) {
+          syncInsert('attendance', data);
+        }
+        
         toast({ title: 'Success', description: 'Attendance recorded successfully.' });
       }
 
@@ -155,6 +175,9 @@ export function AttendanceManagement() {
         .eq('id', deletingAttendance.id);
 
       if (error) throw error;
+      
+      // Sync delete to external Supabase
+      syncDelete('attendance', deletingAttendance.id);
 
       toast({ title: 'Success', description: 'Attendance deleted successfully.' });
       setDeleteDialogOpen(false);

@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { syncInsert, syncUpdate, syncDelete } from '@/lib/syncToExternal';
 
 interface Department {
   id: string;
@@ -107,16 +108,35 @@ export function DepartmentsManagement() {
       };
 
       if (editingDepartment) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('departments')
           .update(payload)
-          .eq('id', editingDepartment.id);
+          .eq('id', editingDepartment.id)
+          .select()
+          .single();
         
         if (error) throw error;
+        
+        // Sync to external Supabase
+        if (data) {
+          syncUpdate('departments', data);
+        }
+        
         toast({ title: 'Success', description: 'Department updated successfully.' });
       } else {
-        const { error } = await supabase.from('departments').insert([payload]);
+        const { data, error } = await supabase
+          .from('departments')
+          .insert([payload])
+          .select()
+          .single();
+        
         if (error) throw error;
+        
+        // Sync to external Supabase
+        if (data) {
+          syncInsert('departments', data);
+        }
+        
         toast({ title: 'Success', description: 'Department created successfully.' });
       }
 
@@ -144,6 +164,9 @@ export function DepartmentsManagement() {
         .eq('id', deletingDepartment.id);
 
       if (error) throw error;
+      
+      // Sync delete to external Supabase
+      syncDelete('departments', deletingDepartment.id);
       
       toast({ title: 'Success', description: 'Department deleted successfully.' });
       setDeleteDialogOpen(false);

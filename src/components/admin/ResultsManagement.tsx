@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
 import { DataTable, Column } from '@/components/ui/data-table';
-import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -12,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { syncInsert, syncUpdate, syncDelete } from '@/lib/syncToExternal';
 
 interface Result {
   id: string;
@@ -150,16 +150,35 @@ export function ResultsManagement() {
       };
 
       if (editingResult) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('results')
           .update(payload)
-          .eq('id', editingResult.id);
+          .eq('id', editingResult.id)
+          .select()
+          .single();
         
         if (error) throw error;
+        
+        // Sync to external Supabase
+        if (data) {
+          syncUpdate('results', data);
+        }
+        
         toast({ title: 'Success', description: 'Result updated successfully.' });
       } else {
-        const { error } = await supabase.from('results').insert([payload]);
+        const { data, error } = await supabase
+          .from('results')
+          .insert([payload])
+          .select()
+          .single();
+        
         if (error) throw error;
+        
+        // Sync to external Supabase
+        if (data) {
+          syncInsert('results', data);
+        }
+        
         toast({ title: 'Success', description: 'Result added successfully.' });
       }
 
@@ -183,6 +202,9 @@ export function ResultsManagement() {
         .eq('id', deletingResult.id);
 
       if (error) throw error;
+      
+      // Sync delete to external Supabase
+      syncDelete('results', deletingResult.id);
 
       toast({ title: 'Success', description: 'Result deleted successfully.' });
       setDeleteDialogOpen(false);
