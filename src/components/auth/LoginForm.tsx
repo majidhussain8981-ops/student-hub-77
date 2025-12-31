@@ -169,14 +169,14 @@ export function LoginForm() {
                     variant="default"
                     disabled={!!demoLoading}
                     onClick={() => instantDemoSignIn('admin@sims.com', 'admin123', 'admin')}
-                    className="h-auto py-3 flex flex-col items-center gap-1 col-span-2 bg-primary hover:bg-primary/90"
+                    className="h-auto py-4 flex flex-col items-center gap-1 bg-primary hover:bg-primary/90"
                   >
                     {demoLoading === 'admin' ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <Loader2 className="w-6 h-6 animate-spin" />
                     ) : (
-                      <Shield className="w-5 h-5" />
+                      <Shield className="w-6 h-6" />
                     )}
-                    <span className="text-sm font-medium">Sign in as Admin</span>
+                    <span className="text-sm font-medium">Admin Demo</span>
                     <span className="text-xs opacity-80">Full system access</span>
                   </Button>
 
@@ -184,52 +184,20 @@ export function LoginForm() {
                     type="button"
                     variant="secondary"
                     disabled={!!demoLoading}
-                    onClick={() => instantDemoSignIn('student@sims.com', 'student123', 'student1')}
-                    className="h-auto py-3 flex flex-col items-center gap-1"
+                    onClick={() => instantDemoSignIn('student@sims.com', 'student123', 'student')}
+                    className="h-auto py-4 flex flex-col items-center gap-1"
                   >
-                    {demoLoading === 'student1' ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
+                    {demoLoading === 'student' ? (
+                      <Loader2 className="w-6 h-6 animate-spin" />
                     ) : (
-                      <BookOpen className="w-5 h-5" />
+                      <BookOpen className="w-6 h-6" />
                     )}
-                    <span className="text-sm font-medium">Student #1</span>
+                    <span className="text-sm font-medium">Student Demo</span>
                     <span className="text-xs text-muted-foreground">John Doe</span>
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={!!demoLoading}
-                    onClick={() => instantDemoSignIn('student2@sims.com', 'student123', 'student2')}
-                    className="h-auto py-3 flex flex-col items-center gap-1"
-                  >
-                    {demoLoading === 'student2' ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <BookOpen className="w-5 h-5" />
-                    )}
-                    <span className="text-sm font-medium">Student #2</span>
-                    <span className="text-xs text-muted-foreground">Jane Smith</span>
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={!!demoLoading}
-                    onClick={() => instantDemoSignIn('student3@sims.com', 'student123', 'student3')}
-                    className="h-auto py-3 flex flex-col items-center gap-1 col-span-2"
-                  >
-                    {demoLoading === 'student3' ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <BookOpen className="w-5 h-5" />
-                    )}
-                    <span className="text-sm font-medium">Student #3</span>
-                    <span className="text-xs text-muted-foreground">Mike Johnson</span>
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-3 text-center">
-                  Click any button above to <span className="font-medium">sign in instantly</span>
+                  Click a button to <span className="font-medium">sign in instantly</span>
                 </p>
               </div>
             )}
