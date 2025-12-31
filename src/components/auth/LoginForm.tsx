@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { GraduationCap, Loader2, Mail, Lock, User, AlertCircle, Shield, BookOpen } from 'lucide-react';
+import { GraduationCap, Loader2, Mail, Lock, User, AlertCircle, Shield, BookOpen, Zap } from 'lucide-react';
 import { z } from 'zod';
 
 const loginSchema = z.object({
@@ -23,7 +23,7 @@ export function LoginForm() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [demoLoading, setDemoLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { signIn, signUp, prepareDemoUsers } = useAuth();
   const { toast } = useToast();
@@ -99,30 +99,36 @@ export function LoginForm() {
     }
   };
 
-  const fillDemoCredentials = async (demoEmail: string, demoPassword: string) => {
-    setDemoLoading(true);
+  const instantDemoSignIn = async (demoEmail: string, demoPassword: string, label: string) => {
+    setDemoLoading(label);
     try {
       // Ensure demo users are always ready (idempotent)
-      const { error } = await prepareDemoUsers();
-      if (error) {
+      const { error: prepError } = await prepareDemoUsers();
+      if (prepError) {
         toast({
           variant: 'destructive',
           title: 'Demo Setup Failed',
-          description: error.message,
+          description: prepError.message,
         });
         return;
       }
 
-      setEmail(demoEmail);
-      setPassword(demoPassword);
-      setErrors({});
-
-      toast({
-        title: 'Demo credentials filled',
-        description: 'Click “Sign In” to continue.',
-      });
+      // Immediately sign in
+      const { error, role } = await signIn(demoEmail, demoPassword);
+      if (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Demo Login Failed',
+          description: error.message,
+        });
+      } else {
+        toast({
+          title: 'Welcome!',
+          description: `Signed in as ${role || 'demo user'}.`,
+        });
+      }
     } finally {
-      setDemoLoading(false);
+      setDemoLoading(null);
     }
   };
 
@@ -150,61 +156,80 @@ export function LoginForm() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* Demo Access Buttons - Show prominently at top when logging in */}
+            {/* One-Click Demo Access - Sign in instantly */}
             {isLogin && (
-              <div className="mb-6 p-4 rounded-lg bg-muted/50 border border-border/50">
-                <p className="text-sm font-medium text-center mb-3">Quick Demo Access</p>
+              <div className="mb-6 p-4 rounded-lg bg-gradient-to-br from-primary/5 to-muted/50 border border-primary/20">
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <Zap className="w-4 h-4 text-primary" />
+                  <p className="text-sm font-semibold">Instant Demo Access</p>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <Button
                     type="button"
-                    variant="outline"
-                    disabled={demoLoading}
-                    onClick={() => fillDemoCredentials('admin@sims.com', 'admin123')}
-                    className="h-auto py-3 flex flex-col items-center gap-1 hover:bg-primary/10 hover:border-primary"
+                    variant="default"
+                    disabled={!!demoLoading}
+                    onClick={() => instantDemoSignIn('admin@sims.com', 'admin123', 'admin')}
+                    className="h-auto py-3 flex flex-col items-center gap-1 col-span-2 bg-primary hover:bg-primary/90"
                   >
-                    <Shield className="w-5 h-5 text-primary" />
-                    <span className="text-sm font-medium">Admin Demo</span>
-                    <span className="text-xs text-muted-foreground">Full access</span>
+                    {demoLoading === 'admin' ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Shield className="w-5 h-5" />
+                    )}
+                    <span className="text-sm font-medium">Sign in as Admin</span>
+                    <span className="text-xs opacity-80">Full system access</span>
                   </Button>
 
                   <Button
                     type="button"
-                    variant="outline"
-                    disabled={demoLoading}
-                    onClick={() => fillDemoCredentials('student@sims.com', 'student123')}
-                    className="h-auto py-3 flex flex-col items-center gap-1 hover:bg-info/10 hover:border-info"
+                    variant="secondary"
+                    disabled={!!demoLoading}
+                    onClick={() => instantDemoSignIn('student@sims.com', 'student123', 'student1')}
+                    className="h-auto py-3 flex flex-col items-center gap-1"
                   >
-                    <BookOpen className="w-5 h-5 text-info" />
+                    {demoLoading === 'student1' ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <BookOpen className="w-5 h-5" />
+                    )}
                     <span className="text-sm font-medium">Student #1</span>
-                    <span className="text-xs text-muted-foreground">Demo Student</span>
+                    <span className="text-xs text-muted-foreground">John Doe</span>
                   </Button>
 
                   <Button
                     type="button"
-                    variant="outline"
-                    disabled={demoLoading}
-                    onClick={() => fillDemoCredentials('student2@sims.com', 'student123')}
-                    className="h-auto py-3 flex flex-col items-center gap-1 hover:bg-info/10 hover:border-info"
+                    variant="secondary"
+                    disabled={!!demoLoading}
+                    onClick={() => instantDemoSignIn('student2@sims.com', 'student123', 'student2')}
+                    className="h-auto py-3 flex flex-col items-center gap-1"
                   >
-                    <BookOpen className="w-5 h-5 text-info" />
+                    {demoLoading === 'student2' ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <BookOpen className="w-5 h-5" />
+                    )}
                     <span className="text-sm font-medium">Student #2</span>
-                    <span className="text-xs text-muted-foreground">Demo Student</span>
+                    <span className="text-xs text-muted-foreground">Jane Smith</span>
                   </Button>
 
                   <Button
                     type="button"
-                    variant="outline"
-                    disabled={demoLoading}
-                    onClick={() => fillDemoCredentials('student3@sims.com', 'student123')}
-                    className="h-auto py-3 flex flex-col items-center gap-1 hover:bg-info/10 hover:border-info"
+                    variant="secondary"
+                    disabled={!!demoLoading}
+                    onClick={() => instantDemoSignIn('student3@sims.com', 'student123', 'student3')}
+                    className="h-auto py-3 flex flex-col items-center gap-1 col-span-2"
                   >
-                    <BookOpen className="w-5 h-5 text-info" />
+                    {demoLoading === 'student3' ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <BookOpen className="w-5 h-5" />
+                    )}
                     <span className="text-sm font-medium">Student #3</span>
-                    <span className="text-xs text-muted-foreground">Demo Student</span>
+                    <span className="text-xs text-muted-foreground">Mike Johnson</span>
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-3 text-center">
-                  Tip: pick a demo account, then press <span className="font-medium">Sign In</span>.
+                  Click any button above to <span className="font-medium">sign in instantly</span>
                 </p>
               </div>
             )}
