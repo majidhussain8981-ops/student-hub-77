@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { syncInsert, syncUpdate, syncDelete } from '@/lib/syncToExternal';
 
 interface Instructor {
   id: string;
@@ -121,16 +122,35 @@ export function InstructorsManagement() {
       };
 
       if (editingInstructor) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('instructors')
           .update(payload)
-          .eq('id', editingInstructor.id);
+          .eq('id', editingInstructor.id)
+          .select()
+          .single();
         
         if (error) throw error;
+        
+        // Sync to external Supabase
+        if (data) {
+          syncUpdate('instructors', data);
+        }
+        
         toast({ title: 'Success', description: 'Instructor updated successfully.' });
       } else {
-        const { error } = await supabase.from('instructors').insert([payload]);
+        const { data, error } = await supabase
+          .from('instructors')
+          .insert([payload])
+          .select()
+          .single();
+        
         if (error) throw error;
+        
+        // Sync to external Supabase
+        if (data) {
+          syncInsert('instructors', data);
+        }
+        
         toast({ title: 'Success', description: 'Instructor created successfully.' });
       }
 
@@ -158,6 +178,9 @@ export function InstructorsManagement() {
         .eq('id', deletingInstructor.id);
 
       if (error) throw error;
+      
+      // Sync delete to external Supabase
+      syncDelete('instructors', deletingInstructor.id);
       
       toast({ title: 'Success', description: 'Instructor deleted successfully.' });
       setDeleteDialogOpen(false);

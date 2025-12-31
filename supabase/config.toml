@@ -2,3 +2,6 @@ project_id = "ttnnbukgvyhqqczzdcsc"
 
 [functions.create-demo-users]
 verify_jwt = false
+
+[functions.sync-to-external]
+verify_jwt = false

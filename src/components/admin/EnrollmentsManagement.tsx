@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { syncInsert, syncUpdate, syncDelete } from '@/lib/syncToExternal';
 
 interface Enrollment {
   id: string;
@@ -107,12 +108,20 @@ export function EnrollmentsManagement() {
     setSaving(true);
     try {
       if (editingEnrollment) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('enrollments')
           .update({ status: formData.status })
-          .eq('id', editingEnrollment.id);
+          .eq('id', editingEnrollment.id)
+          .select()
+          .single();
         
         if (error) throw error;
+        
+        // Sync to external Supabase
+        if (data) {
+          syncUpdate('enrollments', data);
+        }
+        
         toast({ title: 'Success', description: 'Enrollment updated successfully.' });
       } else {
         // Check for duplicate enrollment
@@ -129,8 +138,19 @@ export function EnrollmentsManagement() {
           return;
         }
 
-        const { error } = await supabase.from('enrollments').insert([formData]);
+        const { data, error } = await supabase
+          .from('enrollments')
+          .insert([formData])
+          .select()
+          .single();
+        
         if (error) throw error;
+        
+        // Sync to external Supabase
+        if (data) {
+          syncInsert('enrollments', data);
+        }
+        
         toast({ title: 'Success', description: 'Student enrolled successfully.' });
       }
 
@@ -154,6 +174,9 @@ export function EnrollmentsManagement() {
         .eq('id', deletingEnrollment.id);
 
       if (error) throw error;
+      
+      // Sync delete to external Supabase
+      syncDelete('enrollments', deletingEnrollment.id);
 
       toast({ title: 'Success', description: 'Enrollment deleted successfully.' });
       setDeleteDialogOpen(false);

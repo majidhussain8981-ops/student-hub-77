@@ -7,7 +7,6 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Dialog,
@@ -19,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { syncInsert, syncUpdate, syncDelete } from '@/lib/syncToExternal';
 
 interface Student {
   id: string;
@@ -131,16 +131,35 @@ export function StudentsManagement() {
       };
 
       if (editingStudent) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('students')
           .update(payload)
-          .eq('id', editingStudent.id);
+          .eq('id', editingStudent.id)
+          .select()
+          .single();
         
         if (error) throw error;
+        
+        // Sync to external Supabase
+        if (data) {
+          syncUpdate('students', data);
+        }
+        
         toast({ title: 'Success', description: 'Student updated successfully.' });
       } else {
-        const { error } = await supabase.from('students').insert([payload]);
+        const { data, error } = await supabase
+          .from('students')
+          .insert([payload])
+          .select()
+          .single();
+        
         if (error) throw error;
+        
+        // Sync to external Supabase
+        if (data) {
+          syncInsert('students', data);
+        }
+        
         toast({ title: 'Success', description: 'Student created successfully.' });
       }
 
@@ -168,6 +187,9 @@ export function StudentsManagement() {
         .eq('id', deletingStudent.id);
 
       if (error) throw error;
+      
+      // Sync delete to external Supabase
+      syncDelete('students', deletingStudent.id);
       
       toast({ title: 'Success', description: 'Student deleted successfully.' });
       setDeleteDialogOpen(false);
