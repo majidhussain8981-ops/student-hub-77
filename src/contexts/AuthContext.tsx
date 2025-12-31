@@ -13,6 +13,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null; role: AppRole | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  prepareDemoUsers: () => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -86,16 +87,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string, fullName: string) => {
     const redirectUrl = `${window.location.origin}/`;
-    
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: redirectUrl,
-        data: { full_name: fullName }
-      }
+        data: { full_name: fullName },
+      },
     });
     return { error: error as Error | null };
+  };
+
+  const prepareDemoUsers = async () => {
+    const { data, error } = await supabase.functions.invoke('create-demo-users', { body: {} });
+
+    if (error) return { error: error as Error };
+    if (!data?.success) return { error: new Error(data?.error || 'Demo setup failed') };
+
+    return { error: null };
   };
 
   const signOut = async () => {
@@ -108,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAuthenticated = !!user && !!session;
 
   return (
-    <AuthContext.Provider value={{ user, session, role, loading, isAuthenticated, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, session, role, loading, isAuthenticated, signIn, signUp, signOut, prepareDemoUsers }}>
       {children}
     </AuthContext.Provider>
   );
