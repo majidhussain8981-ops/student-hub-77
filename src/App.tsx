@@ -21,11 +21,24 @@ import { Loader2 } from "lucide-react";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) {
-  const { user, role, loading, isAuthenticated } = useAuth();
-  
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (allowedRoles && role && !allowedRoles.includes(role)) return <Navigate to="/dashboard" replace />;
+  const { session, role, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Session is the source of truth; avoid redirect flicker during auth state transitions.
+  if (!session) return <Navigate to="/login" replace />;
+
+  // If a route requires specific roles, deny access when role is missing or not allowed.
+  if (allowedRoles && (!role || !allowedRoles.includes(role))) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return <>{children}</>;
 }
 
@@ -35,9 +48,16 @@ function Dashboard() {
 }
 
 function AppRoutes() {
-  const { isAuthenticated, loading } = useAuth();
-  
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  const { session, loading } = useAuth();
+  const isAuthenticated = !!session;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <Routes>
@@ -56,8 +76,8 @@ function AppRoutes() {
       <Route path="/my-courses" element={<ProtectedRoute allowedRoles={['student']}><StudentCourses /></ProtectedRoute>} />
       <Route path="/my-attendance" element={<ProtectedRoute allowedRoles={['student']}><StudentAttendance /></ProtectedRoute>} />
       <Route path="/my-results" element={<ProtectedRoute allowedRoles={['student']}><StudentResults /></ProtectedRoute>} />
-      <Route path="/" element={<Navigate to="/login" replace />} />
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
+      <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
     </Routes>
   );
 }
