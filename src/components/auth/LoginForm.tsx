@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { GraduationCap, Loader2, Mail, Lock, User, AlertCircle } from 'lucide-react';
+import { GraduationCap, Loader2, Mail, Lock, User, AlertCircle, Shield, BookOpen } from 'lucide-react';
 import { z } from 'zod';
 
 const loginSchema = z.object({
@@ -73,7 +73,6 @@ export function LoginForm() {
             title: 'Welcome back!',
             description: `Successfully logged in as ${role || 'user'}.`,
           });
-          // No manual navigation: App routes will redirect once auth state updates.
         }
       } else {
         const { error } = await signUp(email, password, fullName);
@@ -133,6 +132,35 @@ export function LoginForm() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Demo Access Buttons - Show prominently at top when logging in */}
+            {isLogin && (
+              <div className="mb-6 p-4 rounded-lg bg-muted/50 border border-border/50">
+                <p className="text-sm font-medium text-center mb-3">Quick Demo Access</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fillDemoCredentials('admin')}
+                    className="h-auto py-3 flex flex-col items-center gap-1 hover:bg-primary/10 hover:border-primary"
+                  >
+                    <Shield className="w-5 h-5 text-primary" />
+                    <span className="text-sm font-medium">Admin Demo</span>
+                    <span className="text-xs text-muted-foreground">Full access</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fillDemoCredentials('student')}
+                    className="h-auto py-3 flex flex-col items-center gap-1 hover:bg-info/10 hover:border-info"
+                  >
+                    <BookOpen className="w-5 h-5 text-info" />
+                    <span className="text-sm font-medium">Student Demo</span>
+                    <span className="text-xs text-muted-foreground">Student view</span>
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               {!isLogin && (
                 <div className="space-y-2">
@@ -198,37 +226,11 @@ export function LoginForm() {
                 )}
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full" size="lg" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isLogin ? 'Sign In' : 'Create Account'}
               </Button>
             </form>
-
-            {isLogin && (
-              <div className="mt-6 pt-6 border-t">
-                <p className="text-sm text-muted-foreground text-center mb-3">Quick Demo Access</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fillDemoCredentials('admin')}
-                    className="text-xs"
-                  >
-                    Admin Demo
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fillDemoCredentials('student')}
-                    className="text-xs"
-                  >
-                    Student Demo
-                  </Button>
-                </div>
-              </div>
-            )}
 
             <div className="mt-6 text-center">
               <button
@@ -237,7 +239,7 @@ export function LoginForm() {
                   setIsLogin(!isLogin);
                   setErrors({});
                 }}
-                className="text-sm text-accent hover:underline"
+                className="text-sm text-primary hover:underline"
               >
                 {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
               </button>
