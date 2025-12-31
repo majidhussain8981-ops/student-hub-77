@@ -61,7 +61,7 @@ export function LoginForm() {
 
     try {
       if (isLogin) {
-        const { error } = await signIn(email, password);
+        const { error, role } = await signIn(email, password);
         if (error) {
           toast({
             variant: 'destructive',
@@ -73,9 +73,9 @@ export function LoginForm() {
         } else {
           toast({
             title: 'Welcome back!',
-            description: 'Successfully logged in.',
+            description: `Successfully logged in as ${role || 'user'}.`,
           });
-          navigate('/dashboard');
+          navigate('/dashboard', { replace: true });
         }
       } else {
         const { error } = await signUp(email, password, fullName);

@@ -14,16 +14,17 @@ import { InstructorsManagement } from "@/components/admin/InstructorsManagement"
 import { EnrollmentsManagement } from "@/components/admin/EnrollmentsManagement";
 import { AttendanceManagement } from "@/components/admin/AttendanceManagement";
 import { ResultsManagement } from "@/components/admin/ResultsManagement";
+import { ReportsPage } from "@/components/admin/ReportsPage";
 import { StudentCourses, StudentAttendance, StudentResults } from "@/components/student/StudentPages";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) {
-  const { user, role, loading } = useAuth();
+  const { user, role, loading, isAuthenticated } = useAuth();
   
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin" /></div>;
-  if (!user) return <Navigate to="/login" replace />;
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (allowedRoles && role && !allowedRoles.includes(role)) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
@@ -34,13 +35,13 @@ function Dashboard() {
 }
 
 function AppRoutes() {
-  const { user, loading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin" /></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LoginForm />} />
+      <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginForm />} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       {/* Admin routes */}
       <Route path="/students" element={<ProtectedRoute allowedRoles={['admin']}><StudentsManagement /></ProtectedRoute>} />
@@ -50,6 +51,7 @@ function AppRoutes() {
       <Route path="/enrollments" element={<ProtectedRoute allowedRoles={['admin']}><EnrollmentsManagement /></ProtectedRoute>} />
       <Route path="/attendance" element={<ProtectedRoute allowedRoles={['admin']}><AttendanceManagement /></ProtectedRoute>} />
       <Route path="/results" element={<ProtectedRoute allowedRoles={['admin']}><ResultsManagement /></ProtectedRoute>} />
+      <Route path="/reports" element={<ProtectedRoute allowedRoles={['admin']}><ReportsPage /></ProtectedRoute>} />
       {/* Student routes */}
       <Route path="/my-courses" element={<ProtectedRoute allowedRoles={['student']}><StudentCourses /></ProtectedRoute>} />
       <Route path="/my-attendance" element={<ProtectedRoute allowedRoles={['student']}><StudentAttendance /></ProtectedRoute>} />
