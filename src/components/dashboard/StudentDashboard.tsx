@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -6,33 +7,66 @@ import { StatCard } from '@/components/ui/stat-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { BookOpen, Calendar, Award, User, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { BookOpen, Calendar, Award, User, Loader2, ArrowRight, TrendingUp, Clock } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface StudentData {
   id: string;
   student_id: string;
   name: string;
   email: string;
+  phone: string | null;
   semester: number;
   status: string;
+  department_id: string | null;
 }
 
 interface EnrollmentWithCourse {
   id: string;
+  status: string;
   course: {
+    id: string;
     name: string;
     code: string;
     credits: number;
   };
 }
 
+interface AttendanceRecord {
+  id: string;
+  date: string;
+  status: string;
+  course: {
+    code: string;
+    name: string;
+  };
+}
+
+interface ResultRecord {
+  id: string;
+  exam_type: string;
+  marks_obtained: number;
+  total_marks: number;
+  grade: string | null;
+  course: {
+    code: string;
+    name: string;
+  };
+}
+
 export function StudentDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [student, setStudent] = useState<StudentData | null>(null);
   const [enrollments, setEnrollments] = useState<EnrollmentWithCourse[]>([]);
+  const [recentAttendance, setRecentAttendance] = useState<AttendanceRecord[]>([]);
+  const [recentResults, setRecentResults] = useState<ResultRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [attendanceStats, setAttendanceStats] = useState({ present: 0, total: 0 });
+  const [attendanceStats, setAttendanceStats] = useState({ present: 0, absent: 0, late: 0, total: 0 });
   const [avgGrade, setAvgGrade] = useState<number | null>(null);
+  const [department, setDepartment] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStudentData = async () => {
@@ -55,40 +89,49 @@ export function StudentDashboard() {
 
         setStudent(studentData);
 
-        // Fetch enrollments with course details
-        const { data: enrollmentsData } = await supabase
-          .from('enrollments')
-          .select(`
-            id,
-            course:courses (
-              name,
-              code,
-              credits
-            )
-          `)
-          .eq('student_id', studentData.id);
-
-        setEnrollments(enrollmentsData as unknown as EnrollmentWithCourse[] || []);
-
-        // Fetch attendance stats
-        const { data: attendanceData } = await supabase
-          .from('attendance')
-          .select('status')
-          .eq('student_id', studentData.id);
-
-        if (attendanceData) {
-          const present = attendanceData.filter(a => a.status === 'present').length;
-          setAttendanceStats({ present, total: attendanceData.length });
+        // Fetch department name
+        if (studentData.department_id) {
+          const { data: deptData } = await supabase
+            .from('departments')
+            .select('name')
+            .eq('id', studentData.department_id)
+            .maybeSingle();
+          setDepartment(deptData?.name || null);
         }
 
-        // Fetch results average
-        const { data: resultsData } = await supabase
-          .from('results')
-          .select('marks_obtained, total_marks')
-          .eq('student_id', studentData.id);
+        // Fetch all data in parallel
+        const [enrollmentsRes, attendanceRes, resultsRes] = await Promise.all([
+          supabase
+            .from('enrollments')
+            .select(`id, status, course:courses(id, name, code, credits)`)
+            .eq('student_id', studentData.id),
+          supabase
+            .from('attendance')
+            .select(`id, date, status, course:courses(code, name)`)
+            .eq('student_id', studentData.id)
+            .order('date', { ascending: false }),
+          supabase
+            .from('results')
+            .select(`id, exam_type, marks_obtained, total_marks, grade, course:courses(code, name)`)
+            .eq('student_id', studentData.id)
+            .order('created_at', { ascending: false }),
+        ]);
 
-        if (resultsData && resultsData.length > 0) {
-          const avg = resultsData.reduce((sum, r) => sum + (Number(r.marks_obtained) / Number(r.total_marks) * 100), 0) / resultsData.length;
+        setEnrollments(enrollmentsRes.data as unknown as EnrollmentWithCourse[] || []);
+        setRecentAttendance((attendanceRes.data as unknown as AttendanceRecord[] || []).slice(0, 5));
+        setRecentResults((resultsRes.data as unknown as ResultRecord[] || []).slice(0, 5));
+
+        // Calculate attendance stats
+        const allAttendance = attendanceRes.data || [];
+        const present = allAttendance.filter(a => a.status === 'present').length;
+        const absent = allAttendance.filter(a => a.status === 'absent').length;
+        const late = allAttendance.filter(a => a.status === 'late').length;
+        setAttendanceStats({ present, absent, late, total: allAttendance.length });
+
+        // Calculate average grade
+        const allResults = resultsRes.data || [];
+        if (allResults.length > 0) {
+          const avg = allResults.reduce((sum, r) => sum + (Number(r.marks_obtained) / Number(r.total_marks) * 100), 0) / allResults.length;
           setAvgGrade(Math.round(avg * 10) / 10);
         }
       } catch (error) {
@@ -129,6 +172,8 @@ export function StudentDashboard() {
     ? Math.round((attendanceStats.present / attendanceStats.total) * 100) 
     : 0;
 
+  const totalCredits = enrollments.reduce((sum, e) => sum + (e.course?.credits || 0), 0);
+
   return (
     <DashboardLayout>
       <PageHeader
@@ -153,6 +198,11 @@ export function StudentDashboard() {
                 <span className="text-sm bg-muted px-3 py-1 rounded-full">
                   Semester {student.semester}
                 </span>
+                {department && (
+                  <span className="text-sm bg-muted px-3 py-1 rounded-full">
+                    {department}
+                  </span>
+                )}
                 <StatusBadge status={student.status} />
               </div>
             </div>
@@ -161,60 +211,187 @@ export function StudentDashboard() {
       </Card>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <StatCard
           title="Enrolled Courses"
           value={enrollments.length}
           icon={BookOpen}
-          description="Active course enrollments"
+          description={`${totalCredits} total credits`}
           iconClassName="bg-info/10 text-info"
         />
         <StatCard
           title="Attendance Rate"
           value={`${attendancePercentage}%`}
           icon={Calendar}
-          description={`${attendanceStats.present} of ${attendanceStats.total} classes`}
-          iconClassName="bg-success/10 text-success"
+          description={`${attendanceStats.present}/${attendanceStats.total} classes`}
+          iconClassName={attendancePercentage >= 75 ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}
         />
         <StatCard
           title="Average Grade"
           value={avgGrade !== null ? `${avgGrade}%` : '--'}
           icon={Award}
           description="Overall performance"
-          iconClassName="bg-warning/10 text-warning"
+          iconClassName={avgGrade !== null && avgGrade >= 60 ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}
+        />
+        <StatCard
+          title="Total Results"
+          value={recentResults.length}
+          icon={TrendingUp}
+          description="Exams completed"
+          iconClassName="bg-accent/10 text-accent"
         />
       </div>
 
-      {/* Enrolled Courses */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-accent" />
-            My Courses
-          </CardTitle>
-          <CardDescription>Courses you are currently enrolled in</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {enrollments.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
-              You are not enrolled in any courses yet.
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {enrollments.map((enrollment) => (
-                <div
-                  key={enrollment.id}
-                  className="p-4 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-start justify-between">
+      {/* Attendance Breakdown */}
+      {attendanceStats.total > 0 && (
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="text-lg">Attendance Breakdown</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-sm">
+                <span>Overall Attendance</span>
+                <span className="font-medium">{attendancePercentage}%</span>
+              </div>
+              <Progress value={attendancePercentage} className="h-3" />
+              <div className="grid grid-cols-3 gap-4 pt-2">
+                <div className="text-center p-3 rounded-lg bg-success/10">
+                  <p className="text-2xl font-bold text-success">{attendanceStats.present}</p>
+                  <p className="text-xs text-muted-foreground">Present</p>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-destructive/10">
+                  <p className="text-2xl font-bold text-destructive">{attendanceStats.absent}</p>
+                  <p className="text-xs text-muted-foreground">Absent</p>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-warning/10">
+                  <p className="text-2xl font-bold text-warning">{attendanceStats.late}</p>
+                  <p className="text-xs text-muted-foreground">Late</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Enrolled Courses */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-accent" />
+                My Courses
+              </CardTitle>
+              <CardDescription>Currently enrolled courses</CardDescription>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/my-courses')}>
+              View All <ArrowRight className="w-4 h-4 ml-1" />
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {enrollments.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                You are not enrolled in any courses yet.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {enrollments.slice(0, 4).map((enrollment) => (
+                  <div
+                    key={enrollment.id}
+                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                  >
                     <div>
-                      <h3 className="font-semibold">{enrollment.course.name}</h3>
+                      <p className="font-medium">{enrollment.course.name}</p>
                       <p className="text-sm text-muted-foreground">{enrollment.course.code}</p>
                     </div>
                     <span className="text-sm bg-primary/10 text-primary px-2 py-1 rounded">
-                      {enrollment.course.credits} Credits
+                      {enrollment.course.credits} Cr
                     </span>
                   </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recent Results */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Award className="w-5 h-5 text-warning" />
+                Recent Results
+              </CardTitle>
+              <CardDescription>Latest exam results</CardDescription>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/my-results')}>
+              View All <ArrowRight className="w-4 h-4 ml-1" />
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {recentResults.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                No results available yet.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {recentResults.slice(0, 4).map((result) => (
+                  <div
+                    key={result.id}
+                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                  >
+                    <div>
+                      <p className="font-medium">{result.course.code}</p>
+                      <p className="text-sm text-muted-foreground">{result.exam_type}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold">{result.marks_obtained}/{result.total_marks}</p>
+                      {result.grade && (
+                        <p className="text-sm text-muted-foreground">Grade: {result.grade}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Attendance */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5 text-info" />
+              Recent Attendance
+            </CardTitle>
+            <CardDescription>Your latest attendance records</CardDescription>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/my-attendance')}>
+            View All <ArrowRight className="w-4 h-4 ml-1" />
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {recentAttendance.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">
+              No attendance records yet.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {recentAttendance.map((att) => (
+                <div
+                  key={att.id}
+                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                >
+                  <div>
+                    <p className="font-medium text-sm">{att.course.code}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(att.date), 'MMM dd, yyyy')}
+                    </p>
+                  </div>
+                  <StatusBadge status={att.status} />
                 </div>
               ))}
             </div>
