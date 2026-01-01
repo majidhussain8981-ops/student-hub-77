@@ -17,6 +17,8 @@ type DemoUser = {
 type DemoStudent = DemoUser & {
   studentCode: string;
   semester: number;
+  gender: string;
+  phone: string;
 };
 
 const DEMO_ADMIN: DemoUser = {
@@ -33,7 +35,20 @@ const DEMO_STUDENT: DemoStudent = {
   role: 'student',
   studentCode: 'STU-2024-001',
   semester: 3,
+  gender: 'Male',
+  phone: '+92-300-1234567',
 };
+
+// Additional demo students for realistic data
+const ADDITIONAL_STUDENTS: Omit<DemoStudent, 'email' | 'password' | 'role'>[] = [
+  { studentCode: 'STU-2024-002', fullName: 'Ayesha Khan', semester: 2, gender: 'Female', phone: '+92-301-2345678' },
+  { studentCode: 'STU-2024-003', fullName: 'Muhammad Ali', semester: 4, gender: 'Male', phone: '+92-302-3456789' },
+  { studentCode: 'STU-2024-004', fullName: 'Fatima Zahra', semester: 1, gender: 'Female', phone: '+92-303-4567890' },
+  { studentCode: 'STU-2024-005', fullName: 'Ahmed Hassan', semester: 3, gender: 'Male', phone: '+92-304-5678901' },
+  { studentCode: 'STU-2024-006', fullName: 'Zainab Malik', semester: 2, gender: 'Female', phone: '+92-305-6789012' },
+  { studentCode: 'STU-2024-007', fullName: 'Bilal Ahmad', semester: 5, gender: 'Male', phone: '+92-306-7890123' },
+  { studentCode: 'STU-2024-008', fullName: 'Maryam Noor', semester: 4, gender: 'Female', phone: '+92-307-8901234' },
+];
 
 function isAlreadyRegisteredError(message: string) {
   return message.toLowerCase().includes('already been registered');
@@ -225,49 +240,87 @@ Deno.serve(async (req) => {
       return newCourses.map((c) => c.id);
     };
 
-    const ensureStudentRecord = async (studentUserId: string, meta: DemoStudent, departmentId: string) => {
-      const { data: existing, error: existingError } = await supabaseAdmin
-        .from('students')
-        .select('id')
-        .eq('user_id', studentUserId)
-        .maybeSingle();
-      
-      if (existingError) {
-        console.error('[create-demo-users] Error checking student:', existingError.message);
-        throw existingError;
+    const ensureStudentRecord = async (studentUserId: string | null, meta: DemoStudent | Omit<DemoStudent, 'email' | 'password' | 'role'>, departmentId: string) => {
+      // For students with user accounts
+      if (studentUserId) {
+        const { data: existing, error: existingError } = await supabaseAdmin
+          .from('students')
+          .select('id')
+          .eq('user_id', studentUserId)
+          .maybeSingle();
+        
+        if (existingError) {
+          console.error('[create-demo-users] Error checking student:', existingError.message);
+          throw existingError;
+        }
+
+        const fullMeta = meta as DemoStudent;
+        const payload = {
+          user_id: studentUserId,
+          student_id: fullMeta.studentCode,
+          name: fullMeta.fullName,
+          email: fullMeta.email,
+          department_id: departmentId,
+          semester: fullMeta.semester,
+          status: 'active',
+          gender: fullMeta.gender,
+          phone: fullMeta.phone,
+        };
+
+        if (existing?.id) {
+          console.log('[create-demo-users] Updating existing student record...');
+          const { error: updateError } = await supabaseAdmin.from('students').update(payload).eq('id', existing.id);
+          if (updateError) {
+            console.error('[create-demo-users] Error updating student:', updateError.message);
+            throw updateError;
+          }
+          return existing.id as string;
+        }
+
+        console.log('[create-demo-users] Creating new student record...');
+        const { data: created, error: insertError } = await supabaseAdmin
+          .from('students')
+          .insert(payload)
+          .select('id')
+          .single();
+        
+        if (insertError) {
+          console.error('[create-demo-users] Error inserting student:', insertError.message);
+          throw insertError;
+        }
+        
+        return created.id as string;
       }
 
-      const payload = {
-        user_id: studentUserId,
-        student_id: meta.studentCode,
-        name: meta.fullName,
-        email: meta.email,
-        department_id: departmentId,
-        semester: meta.semester,
-        status: 'active',
-        gender: 'Male',
-        phone: '+92-300-1234567',
-      };
+      // For students without user accounts (additional demo students)
+      const { data: existing } = await supabaseAdmin
+        .from('students')
+        .select('id')
+        .eq('student_id', meta.studentCode)
+        .maybeSingle();
 
       if (existing?.id) {
-        console.log('[create-demo-users] Updating existing student record...');
-        const { error: updateError } = await supabaseAdmin.from('students').update(payload).eq('id', existing.id);
-        if (updateError) {
-          console.error('[create-demo-users] Error updating student:', updateError.message);
-          throw updateError;
-        }
         return existing.id as string;
       }
 
-      console.log('[create-demo-users] Creating new student record...');
+      const demoEmail = `${meta.studentCode.toLowerCase().replace(/-/g, '')}@students.sims.com`;
       const { data: created, error: insertError } = await supabaseAdmin
         .from('students')
-        .insert(payload)
+        .insert({
+          student_id: meta.studentCode,
+          name: meta.fullName,
+          email: demoEmail,
+          department_id: departmentId,
+          semester: meta.semester,
+          status: 'active',
+          gender: meta.gender,
+          phone: meta.phone,
+        })
         .select('id')
         .single();
       
       if (insertError) {
-        console.error('[create-demo-users] Error inserting student:', insertError.message);
+        console.error('[create-demo-users] Error inserting additional student:', insertError.message);
         throw insertError;
       }
       
@@ -399,9 +452,46 @@ Deno.serve(async (req) => {
       await ensureResult(studentRowId, courseIds[2], 'Project', 90, 100, 'A+', 'Best project in class');
     }
 
-    console.log('[create-demo-users] Attendance and results ready');
+    console.log('[create-demo-users] Main student attendance and results ready');
+
+    // 6) Create additional demo students with enrollments and data
+    const additionalStudentIds: string[] = [];
+    for (const additionalStudent of ADDITIONAL_STUDENTS) {
+      const addStudentId = await ensureStudentRecord(null, additionalStudent, departmentId);
+      additionalStudentIds.push(addStudentId);
+      
+      // Enroll in 2 random courses
+      const shuffledCourses = [...courseIds].sort(() => Math.random() - 0.5).slice(0, 2);
+      for (const courseId of shuffledCourses) {
+        await ensureEnrollment(addStudentId, courseId);
+      }
+    }
+    console.log('[create-demo-users] Additional students created');
+
+    // Add some attendance and results for additional students
+    const statuses = ['present', 'present', 'present', 'present', 'late', 'absent'];
+    const dates = ['2025-01-06', '2025-01-07', '2025-01-08', '2025-01-09', '2025-01-10'];
+    
+    for (let i = 0; i < additionalStudentIds.length; i++) {
+      const addStudentId = additionalStudentIds[i];
+      const courseId = courseIds[i % courseIds.length];
+      
+      // Add some attendance records
+      for (const date of dates) {
+        const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+        await ensureAttendance(addStudentId, courseId, date, randomStatus, null);
+      }
+      
+      // Add a result
+      const randomMarks = 60 + Math.floor(Math.random() * 35);
+      const grade = randomMarks >= 85 ? 'A' : randomMarks >= 70 ? 'B' : randomMarks >= 60 ? 'C' : 'D';
+      await ensureResult(addStudentId, courseId, 'Midterm', randomMarks, 100, grade, null);
+    }
+
+    console.log('[create-demo-users] Additional student data ready');
 
     results.student = { ...studentAuth, student_row_id: studentRowId };
+    results.additionalStudents = additionalStudentIds.length;
 
     console.log('[create-demo-users] Setup complete!');
 
