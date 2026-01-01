@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { GraduationCap, Loader2, Mail, Lock, User, AlertCircle, Shield, BookOpen, Zap } from 'lucide-react';
+import { GraduationCap, Loader2, Mail, Lock, User, AlertCircle } from 'lucide-react';
 import { z } from 'zod';
 
 const loginSchema = z.object({
@@ -24,9 +24,8 @@ export function LoginForm() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [demoLoading, setDemoLoading] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const { signIn, signUp, prepareDemoUsers } = useAuth();
+  const { signIn, signUp } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -102,40 +101,6 @@ export function LoginForm() {
     }
   };
 
-  const instantDemoSignIn = async (demoEmail: string, demoPassword: string, label: string) => {
-    setDemoLoading(label);
-    try {
-      // Ensure demo users are always ready (idempotent)
-      const { error: prepError } = await prepareDemoUsers();
-      if (prepError) {
-        toast({
-          variant: 'destructive',
-          title: 'Demo Setup Failed',
-          description: prepError.message,
-        });
-        return;
-      }
-
-      // Immediately sign in
-      const { error, role } = await signIn(demoEmail, demoPassword);
-      if (error) {
-        toast({
-          variant: 'destructive',
-          title: 'Demo Login Failed',
-          description: error.message,
-        });
-      } else {
-        toast({
-          title: 'Welcome!',
-          description: `Signed in as ${role || 'demo user'}.`,
-        });
-        navigate('/dashboard', { replace: true });
-      }
-    } finally {
-      setDemoLoading(null);
-    }
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30 p-4">
       <div className="w-full max-w-md animate-fade-in">
@@ -160,52 +125,6 @@ export function LoginForm() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* One-Click Demo Access - Sign in instantly */}
-            {isLogin && (
-              <div className="mb-6 p-4 rounded-lg bg-gradient-to-br from-primary/5 to-muted/50 border border-primary/20">
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <Zap className="w-4 h-4 text-primary" />
-                  <p className="text-sm font-semibold">Instant Demo Access</p>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    type="button"
-                    variant="default"
-                    disabled={!!demoLoading}
-                    onClick={() => instantDemoSignIn('admin@sims.com', 'admin123', 'admin')}
-                    className="h-auto py-4 flex flex-col items-center gap-1 bg-primary hover:bg-primary/90"
-                  >
-                    {demoLoading === 'admin' ? (
-                      <Loader2 className="w-6 h-6 animate-spin" />
-                    ) : (
-                      <Shield className="w-6 h-6" />
-                    )}
-                    <span className="text-sm font-medium">Admin Demo</span>
-                    <span className="text-xs opacity-80">Full system access</span>
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={!!demoLoading}
-                    onClick={() => instantDemoSignIn('student@sims.com', 'student123', 'student')}
-                    className="h-auto py-4 flex flex-col items-center gap-1"
-                  >
-                    {demoLoading === 'student' ? (
-                      <Loader2 className="w-6 h-6 animate-spin" />
-                    ) : (
-                      <BookOpen className="w-6 h-6" />
-                    )}
-                    <span className="text-sm font-medium">Student Demo</span>
-                    <span className="text-xs text-muted-foreground">John Doe</span>
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-3 text-center">
-                  Click a button to <span className="font-medium">sign in instantly</span>
-                </p>
-              </div>
-            )}
-
             <form onSubmit={handleSubmit} className="space-y-4">
               {!isLogin && (
                 <div className="space-y-2">
