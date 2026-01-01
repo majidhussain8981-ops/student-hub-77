@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { StatCard } from '@/components/ui/stat-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,6 +33,8 @@ interface RecentActivity {
 
 export function AdminDashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [profileName, setProfileName] = useState<string>('');
   const [stats, setStats] = useState<DashboardStats>({
     students: 0,
     courses: 0,
@@ -49,6 +52,16 @@ export function AdminDashboard() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
+        // Fetch admin profile name
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          setProfileName(profile?.full_name || user.user_metadata?.full_name || 'Admin');
+        }
+
         const [
           studentsRes, 
           coursesRes, 
@@ -106,7 +119,7 @@ export function AdminDashboard() {
     };
 
     fetchStats();
-  }, []);
+  }, [user]);
 
   if (loading) {
     return (
@@ -121,8 +134,8 @@ export function AdminDashboard() {
   return (
     <DashboardLayout>
       <PageHeader
-        title="Admin Dashboard"
-        description="Welcome back! Here's what's happening in your institution."
+        title={`Welcome, ${profileName}!`}
+        description="Here's what's happening in your institution today."
       />
 
       {/* Quick Actions */}
