@@ -353,24 +353,50 @@ Deno.serve(async (req) => {
     }
     console.log('[create-demo-users] Enrollments ready');
 
-    // 5) Add sample attendance and results for first course
+    // 5) Add sample attendance and results for all courses
     if (courseIds[0]) {
-      await ensureAttendance(studentRowId, courseIds[0], '2024-12-01', 'present', null);
-      await ensureAttendance(studentRowId, courseIds[0], '2024-12-02', 'present', null);
-      await ensureAttendance(studentRowId, courseIds[0], '2024-12-03', 'late', 'Arrived 10 min late');
-      await ensureAttendance(studentRowId, courseIds[0], '2024-12-04', 'present', null);
-      await ensureAttendance(studentRowId, courseIds[0], '2024-12-05', 'absent', 'Medical leave');
+      // CS101 - Introduction to Programming
+      await ensureAttendance(studentRowId, courseIds[0], '2025-01-06', 'present', null);
+      await ensureAttendance(studentRowId, courseIds[0], '2025-01-07', 'present', null);
+      await ensureAttendance(studentRowId, courseIds[0], '2025-01-08', 'late', 'Arrived 10 min late');
+      await ensureAttendance(studentRowId, courseIds[0], '2025-01-09', 'present', null);
+      await ensureAttendance(studentRowId, courseIds[0], '2025-01-10', 'absent', 'Medical leave');
+      await ensureAttendance(studentRowId, courseIds[0], '2025-01-13', 'present', null);
+      await ensureAttendance(studentRowId, courseIds[0], '2025-01-14', 'present', null);
+      await ensureAttendance(studentRowId, courseIds[0], '2025-01-15', 'present', null);
 
+      await ensureResult(studentRowId, courseIds[0], 'Quiz 1', 18, 20, 'A+', 'Perfect score');
+      await ensureResult(studentRowId, courseIds[0], 'Quiz 2', 17, 20, 'A', null);
       await ensureResult(studentRowId, courseIds[0], 'Midterm', 42, 50, 'A', 'Excellent performance');
-      await ensureResult(studentRowId, courseIds[0], 'Quiz 1', 18, 20, 'A+', null);
+      await ensureResult(studentRowId, courseIds[0], 'Assignment 1', 28, 30, 'A', null);
       await ensureResult(studentRowId, courseIds[0], 'Final', 85, 100, 'A', 'Great work!');
     }
 
     if (courseIds[1]) {
-      await ensureAttendance(studentRowId, courseIds[1], '2024-12-01', 'present', null);
-      await ensureAttendance(studentRowId, courseIds[1], '2024-12-02', 'present', null);
+      // CS201 - Data Structures
+      await ensureAttendance(studentRowId, courseIds[1], '2025-01-06', 'present', null);
+      await ensureAttendance(studentRowId, courseIds[1], '2025-01-07', 'present', null);
+      await ensureAttendance(studentRowId, courseIds[1], '2025-01-08', 'present', null);
+      await ensureAttendance(studentRowId, courseIds[1], '2025-01-09', 'absent', 'Family emergency');
+      await ensureAttendance(studentRowId, courseIds[1], '2025-01-10', 'present', null);
+      await ensureAttendance(studentRowId, courseIds[1], '2025-01-13', 'present', null);
       
+      await ensureResult(studentRowId, courseIds[1], 'Quiz 1', 16, 20, 'A', null);
       await ensureResult(studentRowId, courseIds[1], 'Midterm', 38, 50, 'B+', 'Good effort');
+      await ensureResult(studentRowId, courseIds[1], 'Assignment 1', 25, 30, 'B+', null);
+    }
+
+    if (courseIds[2]) {
+      // CS301 - Database Systems
+      await ensureAttendance(studentRowId, courseIds[2], '2025-01-06', 'present', null);
+      await ensureAttendance(studentRowId, courseIds[2], '2025-01-07', 'late', 'Traffic delay');
+      await ensureAttendance(studentRowId, courseIds[2], '2025-01-08', 'present', null);
+      await ensureAttendance(studentRowId, courseIds[2], '2025-01-09', 'present', null);
+      await ensureAttendance(studentRowId, courseIds[2], '2025-01-10', 'present', null);
+      
+      await ensureResult(studentRowId, courseIds[2], 'Quiz 1', 19, 20, 'A+', 'Excellent!');
+      await ensureResult(studentRowId, courseIds[2], 'Midterm', 45, 50, 'A', 'Outstanding performance');
+      await ensureResult(studentRowId, courseIds[2], 'Project', 90, 100, 'A+', 'Best project in class');
     }
 
     console.log('[create-demo-users] Attendance and results ready');
