@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { GraduationCap, Loader2, Mail, Lock, User, AlertCircle } from 'lucide-react';
+import { GraduationCap, Loader2, Mail, Lock, User, AlertCircle, Settings } from 'lucide-react';
 import { z } from 'zod';
+import { supabase } from '@/integrations/supabase/client';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -24,10 +25,33 @@ export function LoginForm() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [setupLoading, setSetupLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const setupAdminAccount = async () => {
+    setSetupLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-demo-users', { body: {} });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Setup failed');
+      
+      toast({
+        title: 'Admin Account Ready!',
+        description: 'Email: admin@sims.com | Password: admin123',
+      });
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Setup Failed',
+        description: err.message,
+      });
+    } finally {
+      setSetupLoading(false);
+    }
+  };
 
   const validateForm = () => {
     try {
@@ -126,6 +150,27 @@ export function LoginForm() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Admin Setup - Only show on login */}
+              {isLogin && (
+                <div className="mb-4 p-3 rounded-lg bg-muted/50 border border-border">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Need admin access?</p>
+                      <p className="text-xs text-muted-foreground">Setup creates admin@sims.com / admin123</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={setupAdminAccount}
+                      disabled={setupLoading}
+                    >
+                      {setupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Settings className="w-4 h-4 mr-1" />}
+                      {setupLoading ? 'Setting up...' : 'Setup Admin'}
+                    </Button>
+                  </div>
+                </div>
+              )}
               {!isLogin && (
                 <div className="space-y-2">
                   <Label htmlFor="fullName" className="flex items-center gap-2">
