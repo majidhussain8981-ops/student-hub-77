@@ -23,6 +23,7 @@ const queryClient = new QueryClient();
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) {
   const { session, role, loading } = useAuth();
 
+  // Always show loading while auth is initializing
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -31,10 +32,12 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
     );
   }
 
-  // Session is the source of truth; avoid redirect flicker during auth state transitions.
-  if (!session) return <Navigate to="/login" replace />;
+  // Only redirect to login if we're done loading AND there's no session
+  if (!session) {
+    return <Navigate to="/login" replace />;
+  }
 
-  // If a route requires specific roles, deny access when role is missing or not allowed.
+  // If a route requires specific roles, deny access when role is missing or not allowed
   if (allowedRoles && (!role || !allowedRoles.includes(role))) {
     return <Navigate to="/dashboard" replace />;
   }
