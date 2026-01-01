@@ -39,8 +39,8 @@ export function LoginForm() {
       if (!data?.success) throw new Error(data?.error || 'Setup failed');
       
       toast({
-        title: 'Admin Account Ready!',
-        description: 'Email: admin@sims.com | Password: admin123',
+        title: 'Demo Accounts Ready!',
+        description: 'Admin: admin@sims.com | Student: student@sims.com (password: admin123/student123)',
       });
     } catch (err: any) {
       toast({
@@ -155,8 +155,8 @@ export function LoginForm() {
                 <div className="mb-4 p-3 rounded-lg bg-muted/50 border border-border">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium">Need admin access?</p>
-                      <p className="text-xs text-muted-foreground">Setup creates admin@sims.com / admin123</p>
+                      <p className="text-sm font-medium">Demo Accounts</p>
+                      <p className="text-xs text-muted-foreground">Admin & Student with sample data</p>
                     </div>
                     <Button
                       type="button"
@@ -166,7 +166,7 @@ export function LoginForm() {
                       disabled={setupLoading}
                     >
                       {setupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Settings className="w-4 h-4 mr-1" />}
-                      {setupLoading ? 'Setting up...' : 'Setup Admin'}
+                      {setupLoading ? 'Setting up...' : 'Setup Demo'}
                     </Button>
                   </div>
                 </div>
