@@ -51,9 +51,20 @@ export function DataTable<T extends { id: string }>({
     onSearch?.(value);
   };
 
-  const totalPages = Math.ceil(data.length / pageSize);
+  // Filter data based on search query - searches all string/number values in each item
+  const filteredData = searchQuery.trim()
+    ? data.filter((item) => {
+        const query = searchQuery.toLowerCase();
+        return Object.values(item).some((value) => {
+          if (value === null || value === undefined) return false;
+          return String(value).toLowerCase().includes(query);
+        });
+      })
+    : data;
+
+  const totalPages = Math.ceil(filteredData.length / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
-  const paginatedData = data.slice(startIndex, startIndex + pageSize);
+  const paginatedData = filteredData.slice(startIndex, startIndex + pageSize);
 
   if (loading) {
     return (
@@ -131,7 +142,8 @@ export function DataTable<T extends { id: string }>({
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Showing {startIndex + 1} to {Math.min(startIndex + pageSize, data.length)} of {data.length} entries
+            Showing {startIndex + 1} to {Math.min(startIndex + pageSize, filteredData.length)} of {filteredData.length} entries
+            {searchQuery && ` (filtered from ${data.length})`}
           </p>
           <div className="flex items-center gap-2">
             <Button
